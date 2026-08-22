@@ -1,0 +1,703 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPMSQ 簡易心智狀態問卷評估與後台管理系統</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600; }
+    .badge-normal { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .badge-mild { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
+    .badge-moderate { background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-severe { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- 頂部導航列 -->
+  <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+          🧠
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">SPMSQ 心智狀態評估系統</h1>
+          <p class="text-xs text-slate-500">Short Portable Mental Status Questionnaire</p>
+        </div>
+      </div>
+
+      <!-- 切換頁籤 -->
+      <nav class="flex space-x-2 sm:space-x-4">
+        <button id="tabBtnForm" onclick="switchTab('form')" class="px-3 sm:px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center gap-1.5 transition-colors tab-active">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+          <span>問卷施測填寫</span>
+        </button>
+        <button id="tabBtnAdmin" onclick="switchTab('admin')" class="px-3 sm:px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>管理者後台</span>
+          <span id="recordCountBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-semibold">0</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 主內容區 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- 前台：問卷填寫區 -->
+    <section id="viewForm" class="space-y-6">
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
+        <div class="flex items-start space-x-3">
+          <div class="p-2 bg-blue-100 rounded-lg text-blue-600 mt-0.5">
+            <i data-lucide="info" class="w-5 h-5"></i>
+          </div>
+          <div class="text-sm text-blue-900 space-y-1">
+            <h2 class="font-semibold text-base text-blue-950">SPMSQ 施測填寫指引</h2>
+            <p>1. 本量表共有 10 個認知問題，請施測者口頭詢問長者並依實際回答判定。</p>
+            <p>2. 計分方式採<b>「答錯題數」</b>計算（答對 0 分，答錯 1 分），系統將依長者的<b>教育程度</b>進行自動校正評估。</p>
+          </div>
+        </div>
+      </div>
+
+      <form id="spmsqForm" onsubmit="handleFormSubmit(event)" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-8">
+        <!-- 基本資料 -->
+        <div>
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-200 mb-5">
+            <i data-lucide="user-check" class="w-5 h-5 text-blue-600"></i>
+            <h3 class="text-lg font-bold text-slate-900">一、 基本受測資料</h3>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">施測日期 <span class="text-red-500">*</span></label>
+              <input type="date" id="evalDate" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">施測人員姓名 <span class="text-red-500">*</span></label>
+              <input type="text" id="assessorName" placeholder="例如：職能治療師" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">受測長者姓名 <span class="text-red-500">*</span></label>
+              <input type="text" id="clientName" placeholder="長者姓名" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">生理性別 <span class="text-red-500">*</span></label>
+              <select id="gender" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="">請選擇</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">年齡 (歲) <span class="text-red-500">*</span></label>
+              <input type="number" id="age" min="40" max="120" placeholder="例如：75" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">教育程度 (用於校正) <span class="text-red-500">*</span></label>
+              <select id="education" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="">請選擇教育程度</option>
+                <option value="primary_or_less">小學以下 / 未受正規教育 (容許+1錯題)</option>
+                <option value="junior_high">國中程度 (標準計分)</option>
+                <option value="senior_high_above">高中 / 大專以上 (容許-1錯題)</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2 lg:col-span-3">
+              <label class="block text-sm font-medium text-slate-700 mb-1">聯絡電話 / 居住地址 (選填)</label>
+              <input type="text" id="contactInfo" placeholder="聯絡電話或住址" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+            </div>
+          </div>
+        </div>
+
+        <!-- 10 題評估項目 -->
+        <div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-5">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="help-circle" class="w-5 h-5 text-blue-600"></i>
+              <h3 class="text-lg font-bold text-slate-900">二、 SPMSQ 10 題評估項目</h3>
+            </div>
+            <span class="text-xs text-slate-500">※ 答錯請選「錯誤 (1分)」</span>
+          </div>
+          <div class="space-y-4" id="questionsContainer"></div>
+        </div>
+
+        <!-- 備註 -->
+        <div>
+          <div class="flex items-center space-x-2 pb-3 border-b border-slate-200 mb-5">
+            <i data-lucide="message-square" class="w-5 h-5 text-blue-600"></i>
+            <h3 class="text-lg font-bold text-slate-900">三、 施測觀察與備註</h3>
+          </div>
+          <textarea id="notes" rows="3" placeholder="請記錄長者作答過程中的反應、情緒、肢體狀況或特殊生活背景..." class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"></textarea>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-end items-center gap-3">
+          <button type="button" onclick="document.getElementById('spmsqForm').reset(); initFormDate();" class="w-full sm:w-auto px-5 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium">重設表單</button>
+          <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow flex items-center justify-center gap-2">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>提交並記錄至後台</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 後台：管理者儀表板 -->
+    <section id="viewAdmin" class="space-y-6 hidden">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">管理者控制台</h2>
+            <p class="text-xs text-slate-500">即時監控 SPMSQ 問卷填寫數據、認知分數分佈與轉介狀態</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="loadSample20Data()" class="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>一鍵匯入 20 筆示範資料</span>
+          </button>
+          <button onclick="exportToCSV()" class="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>匯出 CSV 報表</span>
+          </button>
+          <button onclick="clearAllData()" class="px-3.5 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>清空資料</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI 統計數字 -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <span class="text-xs text-slate-500 font-medium">總評估人次</span>
+          <div class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotal">0</div>
+          <div class="text-xs text-slate-400 mt-1">累計長者</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-green-200 bg-green-50/40 shadow-sm">
+          <span class="text-xs text-green-700 font-medium">心智功能正常</span>
+          <div class="text-2xl font-bold text-green-600 mt-1" id="kpiNormal">0</div>
+          <div class="text-xs text-green-600 mt-1" id="kpiNormalRate">0%</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-yellow-200 bg-yellow-50/40 shadow-sm">
+          <span class="text-xs text-yellow-700 font-medium">輕度心智缺損</span>
+          <div class="text-2xl font-bold text-yellow-600 mt-1" id="kpiMild">0</div>
+          <div class="text-xs text-yellow-600 mt-1" id="kpiMildRate">0%</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-orange-200 bg-orange-50/40 shadow-sm">
+          <span class="text-xs text-orange-700 font-medium">中度心智缺損</span>
+          <div class="text-2xl font-bold text-orange-600 mt-1" id="kpiModerate">0</div>
+          <div class="text-xs text-orange-600 mt-1" id="kpiModerateRate">0%</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-red-200 bg-red-50/40 shadow-sm">
+          <span class="text-xs text-red-700 font-medium">重度心智缺損</span>
+          <div class="text-2xl font-bold text-red-600 mt-1" id="kpiSevere">0</div>
+          <div class="text-xs text-red-600 mt-1" id="kpiSevereRate">0%</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 shadow-sm">
+          <span class="text-xs text-indigo-700 font-medium">建議就醫轉介</span>
+          <div class="text-2xl font-bold text-indigo-600 mt-1" id="kpiReferral">0</div>
+          <div class="text-xs text-indigo-600 mt-1">需醫療介入</div>
+        </div>
+      </div>
+
+      <!-- 圖表分析區 -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">答錯題數分數分佈 (0～10 題)</h3>
+          <p class="text-xs text-slate-500 mb-4">橫軸為答錯題數，縱軸為人數</p>
+          <div class="h-64 sm:h-72"><canvas id="scoreDistributionChart"></canvas></div>
+        </div>
+        <div class="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">認知狀態分級比例</h3>
+          <p class="text-xs text-slate-500 mb-4">含教育程度校正判定結果</p>
+          <div class="h-64 sm:h-72 flex items-center justify-center"><canvas id="statusPieChart"></canvas></div>
+        </div>
+        <div class="lg:col-span-12 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">各題答錯率分析 (Q1 ～ Q10)</h3>
+          <p class="text-xs text-slate-500 mb-4">分析長者在哪些心智向度最容易發生障礙</p>
+          <div class="h-64 sm:h-72"><canvas id="questionErrorChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 表格清單 -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">受測者紀錄清單</h3>
+            <p class="text-xs text-slate-500">點選「詳情」可瀏覽每位長者完整 10 題作答記錄</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <input type="text" id="tableSearch" oninput="renderTable()" placeholder="搜尋姓名 / 施測者..." class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500">
+            <select id="statusFilter" onchange="renderTable()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500">
+              <option value="all">所有認知狀態</option>
+              <option value="正常">心智功能正常</option>
+              <option value="輕度">輕度心智缺損</option>
+              <option value="中度">中度心智缺損</option>
+              <option value="重度">重度心智缺損</option>
+              <option value="referral">需轉介就醫</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
+              <tr>
+                <th class="py-3 px-4">#</th>
+                <th class="py-3 px-4">施測日期</th>
+                <th class="py-3 px-4">受測長者</th>
+                <th class="py-3 px-4">性別 / 年齡</th>
+                <th class="py-3 px-4">教育程度</th>
+                <th class="py-3 px-4">施測者</th>
+                <th class="py-3 px-4 text-center">錯題數</th>
+                <th class="py-3 px-4 text-center">評估結果</th>
+                <th class="py-3 px-4 text-center">處置建議</th>
+                <th class="py-3 px-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody" class="divide-y divide-slate-200 text-slate-700 text-xs sm:text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 詳情彈出視窗 -->
+  <div id="detailModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
+      <div class="flex justify-between items-center pb-4 border-b border-slate-200">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900" id="modalClientTitle">SPMSQ 評估詳情</h3>
+          <p class="text-xs text-slate-500" id="modalSubTitle"></p>
+        </div>
+        <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="modalContent" class="space-y-4 text-sm"></div>
+      <div class="pt-4 border-t border-slate-200 flex justify-end">
+        <button onclick="closeDetailModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SPMSQ_QUESTIONS = [
+      { id: 'q1', text: '1. 今天是幾號？（年、月、日）', hint: '評分指引：年、月、日均需正確才算答對。' },
+      { id: 'q2', text: '2. 今天是星期幾？', hint: '評分指引：星期正確才算答對。' },
+      { id: 'q3', text: '3. 這是什麼地方？', hint: '評分指引：對所在地有具體描述即可（如說出「我的家」、醫院、機構或城鎮名均可）。' },
+      { id: 'q4', text: '4. 您的電話號碼是幾號？（若無電話改問：地址/住在哪裡）', hint: '評分指引：經確認電話/住址無誤，或訪談期間兩次間隔回答一致即算正確。' },
+      { id: 'q5', text: '5. 您今年幾歲了？', hint: '評分指引：年齡需與出生年月日換算相符才算正確。' },
+      { id: 'q6', text: '6. 您的出生年月日是幾月幾號？', hint: '評分指引：出生年、月、日均需正確才算答對。' },
+      { id: 'q7', text: '7. 現任的總統是誰？', hint: '評分指引：姓氏正確即可。' },
+      { id: 'q8', text: '8. 前任的總統是誰？', hint: '評分指引：姓氏正確即可。' },
+      { id: 'q9', text: '9. 您的母親叫什麼名字？', hint: '評分指引：長輩能說出一個與自己不同的女性姓名即可。' },
+      { id: 'q10', text: '10. 從 20 開始每次減 3，一直減下去（20-3=17, 14, 11, 8, 5, 2）', hint: '評分指引：連續減 3 計算，期間若有任何數字錯誤或中斷即算錯誤。' }
+    ];
+
+    let records = [];
+    let scoreChart = null, pieChart = null, questionChart = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initFormDate();
+      renderQuestionItems();
+      loadStoredRecords();
+      lucide.createIcons();
+    });
+
+    function initFormDate() {
+      const today = new Date().toISOString().split('T')[0];
+      const dateEl = document.getElementById('evalDate');
+      if (dateEl) dateEl.value = today;
+    }
+
+    function renderQuestionItems() {
+      const container = document.getElementById('questionsContainer');
+      if (!container) return;
+      container.innerHTML = SPMSQ_QUESTIONS.map((item) => `
+        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="font-semibold text-slate-900 text-sm sm:text-base">${item.text}</div>
+              <div class="text-xs text-slate-500 flex items-center gap-1">
+                <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>${item.hint}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-3 shrink-0">
+              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-slate-200 hover:border-blue-400">
+                <input type="radio" name="${item.id}" value="0" checked class="text-blue-600">
+                <span class="text-xs sm:text-sm font-medium text-emerald-700">答對 (0分)</span>
+              </label>
+              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-slate-200 hover:border-red-400">
+                <input type="radio" name="${item.id}" value="1" class="text-red-600">
+                <span class="text-xs sm:text-sm font-medium text-red-600">答錯 (1分)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function switchTab(tab) {
+      const btnForm = document.getElementById('tabBtnForm');
+      const btnAdmin = document.getElementById('tabBtnAdmin');
+      const viewForm = document.getElementById('viewForm');
+      const viewAdmin = document.getElementById('viewAdmin');
+
+      if (tab === 'form') {
+        btnForm.classList.add('tab-active');
+        btnAdmin.classList.remove('tab-active');
+        viewForm.classList.remove('hidden');
+        viewAdmin.classList.add('hidden');
+      } else {
+        btnAdmin.classList.add('tab-active');
+        btnForm.classList.remove('tab-active');
+        viewAdmin.classList.remove('hidden');
+        viewForm.classList.add('hidden');
+        updateAdminDashboard();
+      }
+      lucide.createIcons();
+    }
+
+    function evaluateSPMSQ(rawErrors, education) {
+      let status = '', statusCode = '', advice = '';
+      if (education === 'primary_or_less') {
+        if (rawErrors <= 3) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
+        else if (rawErrors <= 5) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
+        else if (rawErrors <= 8) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
+        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
+      } else if (education === 'senior_high_above') {
+        if (rawErrors <= 1) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
+        else if (rawErrors <= 3) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
+        else if (rawErrors <= 6) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
+        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
+      } else {
+        if (rawErrors <= 2) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
+        else if (rawErrors <= 4) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
+        else if (rawErrors <= 7) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
+        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
+      }
+      return { status, statusCode, advice, needsReferral: statusCode !== 'normal' };
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const evalDate = document.getElementById('evalDate').value;
+      const assessorName = document.getElementById('assessorName').value.trim();
+      const clientName = document.getElementById('clientName').value.trim();
+      const gender = document.getElementById('gender').value;
+      const age = parseInt(document.getElementById('age').value);
+      const education = document.getElementById('education').value;
+      const contactInfo = document.getElementById('contactInfo').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      const answers = {};
+      let rawErrors = 0;
+      SPMSQ_QUESTIONS.forEach(q => {
+        const val = parseInt(document.querySelector(`input[name="${q.id}"]:checked`).value);
+        answers[q.id] = val;
+        rawErrors += val;
+      });
+
+      const evalResult = evaluateSPMSQ(rawErrors, education);
+      const record = {
+        id: 'REC_' + Date.now(),
+        timestamp: new Date().toLocaleString('zh-TW', { hour12: false }),
+        evalDate, assessorName, clientName, gender, age, education, contactInfo, notes,
+        answers, rawErrors, ...evalResult
+      };
+
+      records.unshift(record);
+      saveRecordsToStorage();
+
+      alert(`✅ 評估資料已記錄！\n【個案】${clientName} (${age}歲)\n【錯題數】${rawErrors} 題\n【判定結果】${evalResult.status}`);
+      document.getElementById('spmsqForm').reset();
+      initFormDate();
+      switchTab('admin');
+    }
+
+    function saveRecordsToStorage() {
+      localStorage.setItem('SPMSQ_RECORDS', JSON.stringify(records));
+      const badge = document.getElementById('recordCountBadge');
+      if (badge) badge.innerText = records.length;
+    }
+
+    function loadStoredRecords() {
+      const data = localStorage.getItem('SPMSQ_RECORDS');
+      if (data) {
+        try { records = JSON.parse(data); } catch(e) { records = []; }
+      }
+      const badge = document.getElementById('recordCountBadge');
+      if (badge) badge.innerText = records.length;
+    }
+
+    function loadSample20Data() {
+      if (records.length > 0 && !confirm('確定載入 20 筆示範資料嗎？')) return;
+      const sampleNames = [
+        { name: '陳水生', gender: '男', age: 78, edu: 'primary_or_less', errors: 2, assessor: '鍾治療師' },
+        { name: '林金枝', gender: '女', age: 82, edu: 'primary_or_less', errors: 5, assessor: '鍾治療師' },
+        { name: '張阿滿', gender: '女', age: 75, edu: 'junior_high', errors: 1, assessor: '王個管師' },
+        { name: '黃文雄', gender: '男', age: 80, edu: 'junior_high', errors: 4, assessor: '王個管師' },
+        { name: '李國華', gender: '男', age: 69, edu: 'senior_high_above', errors: 0, assessor: '李護理師' },
+        { name: '吳秀琴', gender: '女', age: 86, edu: 'primary_or_less', errors: 7, assessor: '李護理師' },
+        { name: '蔡德福', gender: '男', age: 73, edu: 'senior_high_above', errors: 3, assessor: '鍾治療師' },
+        { name: '趙玉蘭', gender: '女', age: 79, edu: 'junior_high', errors: 6, assessor: '鍾治療師' },
+        { name: '孫阿發', gender: '男', age: 88, edu: 'primary_or_less', errors: 9, assessor: '陳志工' },
+        { name: '劉春梅', gender: '女', age: 71, edu: 'senior_high_above', errors: 1, assessor: '陳志工' },
+        { name: '許正義', gender: '男', age: 76, edu: 'junior_high', errors: 3, assessor: '王個管師' },
+        { name: '楊碧蓮', gender: '女', age: 84, edu: 'primary_or_less', errors: 4, assessor: '王個管師' },
+        { name: '周志強', gender: '男', age: 68, edu: 'senior_high_above', errors: 2, assessor: '李護理師' },
+        { name: '何月娥', gender: '女', age: 77, edu: 'junior_high', errors: 0, assessor: '李護理師' },
+        { name: '郭添財', gender: '男', age: 81, edu: 'primary_or_less', errors: 6, assessor: '鍾治療師' },
+        { name: '洪麗華', gender: '女', age: 74, edu: 'junior_high', errors: 5, assessor: '鍾治療師' },
+        { name: '葉俊宏', gender: '男', age: 70, edu: 'senior_high_above', errors: 8, assessor: '鍾治療師' },
+        { name: '施玉葉', gender: '女', age: 85, edu: 'primary_or_less', errors: 3, assessor: '陳志工' },
+        { name: '蘇慶隆', gender: '男', age: 79, edu: 'junior_high', errors: 2, assessor: '王個管師' },
+        { name: '潘秀珍', gender: '女', age: 83, edu: 'primary_or_less', errors: 1, assessor: '王個管師' }
+      ];
+
+      const errorPool = ['q10', 'q8', 'q7', 'q6', 'q1', 'q5', 'q4', 'q3', 'q9', 'q2'];
+      records = sampleNames.map((s, idx) => {
+        const answers = {};
+        for (let i = 1; i <= 10; i++) answers['q' + i] = 0;
+        for (let e = 0; e < s.errors; e++) answers[errorPool[e]] = 1;
+        const evalResult = evaluateSPMSQ(s.errors, s.edu);
+        const day = (10 + (idx % 12)).toString().padStart(2, '0');
+        return {
+          id: 'SAMPLE_' + (idx + 1),
+          timestamp: `2026/08/${day} 10:30:00`,
+          evalDate: `2026-08-${day}`,
+          assessorName: s.assessor, clientName: s.name, gender: s.gender, age: s.age,
+          education: s.edu, contactInfo: '09' + Math.floor(10000000 + Math.random()*90000000),
+          notes: s.errors >= 5 ? '計算與近事記憶需進一步關注。' : '作答反應良好。',
+          answers, rawErrors: s.errors, ...evalResult
+        };
+      });
+      saveRecordsToStorage();
+      updateAdminDashboard();
+      alert('🎉 成功匯入 20 筆標準評估模擬資料！');
+    }
+
+    function clearAllData() {
+      if (confirm('確定清空所有評估紀錄嗎？')) {
+        records = [];
+        saveRecordsToStorage();
+        updateAdminDashboard();
+      }
+    }
+
+    function exportToCSV() {
+      if (records.length === 0) return alert('目前無評估資料可匯出。');
+      let csv = '\uFEFF編號,填寫時間,施測日期,施測者,受測長者,性別,年齡,教育程度,聯絡資訊,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,原始錯題數,評估狀態,處置建議,備註\n';
+      records.forEach((r, idx) => {
+        const edu = r.education === 'primary_or_less' ? '小學以下' : r.education === 'junior_high' ? '國中' : '高中大專以上';
+        csv += [
+          idx + 1, `"${r.timestamp}"`, r.evalDate, `"${r.assessorName}"`, `"${r.clientName}"`,
+          r.gender, r.age, `"${edu}"`, `"${r.contactInfo || ''}"`,
+          r.answers.q1, r.answers.q2, r.answers.q3, r.answers.q4, r.answers.q5,
+          r.answers.q6, r.answers.q7, r.answers.q8, r.answers.q9, r.answers.q10,
+          r.rawErrors, `"${r.status}"`, `"${r.needsReferral ? '建議轉介' : '正常觀察'}"`,
+          `"${(r.notes || '').replace(/"/g, '""')}"`
+        ].join(',') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SPMSQ_評估總表_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    }
+
+    function updateAdminDashboard() {
+      const total = records.length;
+      const normal = records.filter(r => r.statusCode === 'normal').length;
+      const mild = records.filter(r => r.statusCode === 'mild').length;
+      const moderate = records.filter(r => r.statusCode === 'moderate').length;
+      const severe = records.filter(r => r.statusCode === 'severe').length;
+      const referral = records.filter(r => r.needsReferral).length;
+
+      document.getElementById('kpiTotal').innerText = total;
+      document.getElementById('kpiNormal').innerText = normal;
+      document.getElementById('kpiNormalRate').innerText = total ? `${Math.round((normal/total)*100)}%` : '0%';
+      document.getElementById('kpiMild').innerText = mild;
+      document.getElementById('kpiMildRate').innerText = total ? `${Math.round((mild/total)*100)}%` : '0%';
+      document.getElementById('kpiModerate').innerText = moderate;
+      document.getElementById('kpiModerateRate').innerText = total ? `${Math.round((moderate/total)*100)}%` : '0%';
+      document.getElementById('kpiSevere').innerText = severe;
+      document.getElementById('kpiSevereRate').innerText = total ? `${Math.round((severe/total)*100)}%` : '0%';
+      document.getElementById('kpiReferral').innerText = referral;
+
+      renderCharts();
+      renderTable();
+    }
+
+    function renderCharts() {
+      // 錯題數直方圖
+      const ctxScore = document.getElementById('scoreDistributionChart');
+      if (ctxScore) {
+        const bins = Array(11).fill(0);
+        records.forEach(r => bins[Math.min(Math.max(r.rawErrors, 0), 10)]++);
+        if (scoreChart) scoreChart.destroy();
+        scoreChart = new Chart(ctxScore, {
+          type: 'bar',
+          data: {
+            labels: ['0題','1題','2題','3題','4題','5題','6題','7題','8題','9題','10題'],
+            datasets: [{
+              data: bins,
+              backgroundColor: ['#10b981','#10b981','#10b981','#eab308','#eab308','#f97316','#f97316','#f97316','#ef4444','#ef4444','#ef4444'],
+              borderRadius: 6
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+        });
+      }
+
+      // 圓餅圖
+      const ctxPie = document.getElementById('statusPieChart');
+      if (ctxPie) {
+        const normal = records.filter(r => r.statusCode === 'normal').length;
+        const mild = records.filter(r => r.statusCode === 'mild').length;
+        const moderate = records.filter(r => r.statusCode === 'moderate').length;
+        const severe = records.filter(r => r.statusCode === 'severe').length;
+        if (pieChart) pieChart.destroy();
+        pieChart = new Chart(ctxPie, {
+          type: 'doughnut',
+          data: {
+            labels: ['心智功能正常', '輕度心智缺損', '中度心智缺損', '重度心智缺損'],
+            datasets: [{
+              data: records.length ? [normal, mild, moderate, severe] : [1,0,0,0],
+              backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444'],
+              borderWidth: 2, borderColor: '#fff'
+            }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }, cutout: '65%' }
+        });
+      }
+
+      // 錯誤率分析
+      const ctxQ = document.getElementById('questionErrorChart');
+      if (ctxQ) {
+        const errorCounts = Array(10).fill(0);
+        records.forEach(r => {
+          for (let i = 1; i <= 10; i++) if (r.answers['q' + i] === 1) errorCounts[i - 1]++;
+        });
+        const total = records.length || 1;
+        const percentages = errorCounts.map(c => Math.round((c / total) * 100));
+        if (questionChart) questionChart.destroy();
+        questionChart = new Chart(ctxQ, {
+          type: 'bar',
+          data: {
+            labels: ['Q1 今天幾號', 'Q2 星期幾', 'Q3 所在地點', 'Q4 電話/地址', 'Q5 長者年齡', 'Q6 出生年月日', 'Q7 現任總統', 'Q8 前任總統', 'Q9 母親姓名', 'Q10 連續減3'],
+            datasets: [{ label: '答錯率 (%)', data: percentages, backgroundColor: '#3b82f6', borderRadius: 4 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } } }
+        });
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('recordsTableBody');
+      if (!tbody) return;
+      const query = (document.getElementById('tableSearch')?.value || '').toLowerCase();
+      const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+
+      const filtered = records.filter(r => {
+        const matchQuery = r.clientName.toLowerCase().includes(query) || r.assessorName.toLowerCase().includes(query);
+        let matchStatus = true;
+        if (statusFilter === 'referral') matchStatus = r.needsReferral;
+        else if (statusFilter === '正常') matchStatus = r.statusCode === 'normal';
+        else if (statusFilter === '輕度') matchStatus = r.statusCode === 'mild';
+        else if (statusFilter === '中度') matchStatus = r.statusCode === 'moderate';
+        else if (statusFilter === '重度') matchStatus = r.statusCode === 'severe';
+        return matchQuery && matchStatus;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-400">目前尚無符合條件的評估紀錄</td></tr>`;
+        return;
+      }
+
+      const eduMap = { 'primary_or_less': '小學以下', 'junior_high': '國中', 'senior_high_above': '高中以上' };
+      tbody.innerHTML = filtered.map((r, idx) => `
+        <tr class="hover:bg-slate-50/80 transition-colors">
+          <td class="py-3 px-4 font-mono text-xs text-slate-400">${idx + 1}</td>
+          <td class="py-3 px-4">${r.evalDate}</td>
+          <td class="py-3 px-4 font-semibold text-slate-900">${r.clientName}</td>
+          <td class="py-3 px-4">${r.gender} / ${r.age}歲</td>
+          <td class="py-3 px-4 text-slate-600">${eduMap[r.education] || r.education}</td>
+          <td class="py-3 px-4 text-slate-600">${r.assessorName}</td>
+          <td class="py-3 px-4 text-center font-bold text-slate-800">${r.rawErrors} / 10</td>
+          <td class="py-3 px-4 text-center"><span class="px-2.5 py-1 text-xs font-semibold rounded-full badge-${r.statusCode}">${r.status}</span></td>
+          <td class="py-3 px-4 text-center">${r.needsReferral ? '<span class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">建議轉介</span>' : '<span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">正常觀察</span>'}</td>
+          <td class="py-3 px-4 text-right space-x-2">
+            <button onclick="viewRecordDetail('${r.id}')" class="text-blue-600 hover:text-blue-800 font-medium text-xs">詳情</button>
+            <button onclick="deleteRecord('${r.id}')" class="text-red-500 hover:text-red-700 font-medium text-xs">刪除</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function viewRecordDetail(id) {
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+      const eduMap = { 'primary_or_less': '小學以下 (容許+1錯題)', 'junior_high': '國中 (標準)', 'senior_high_above': '高中大專以上 (容許-1錯題)' };
+      document.getElementById('modalClientTitle').innerText = `${record.clientName} 的 SPMSQ 評估報告`;
+      document.getElementById('modalSubTitle').innerText = `施測日期：${record.evalDate} ｜ 施測者：${record.assessorName}`;
+      
+      let rows = SPMSQ_QUESTIONS.map(q => `
+        <div class="flex items-center justify-between py-2 border-b border-slate-100 text-xs sm:text-sm">
+          <span class="text-slate-700 font-medium">${q.text}</span>
+          <span class="font-bold px-2 py-0.5 rounded text-xs ${record.answers[q.id] === 1 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">
+            ${record.answers[q.id] === 1 ? '答錯 (+1)' : '答對 (0)'}
+          </span>
+        </div>
+      `).join('');
+
+      document.getElementById('modalContent').innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+          <div><span class="text-slate-400">性別 / 年齡：</span><div class="font-semibold text-slate-800 mt-0.5">${record.gender} / ${record.age}歲</div></div>
+          <div><span class="text-slate-400">教育程度：</span><div class="font-semibold text-slate-800 mt-0.5">${eduMap[record.education]}</div></div>
+          <div><span class="text-slate-400">答錯題數：</span><div class="font-bold text-slate-900 mt-0.5">${record.rawErrors} / 10 題</div></div>
+          <div><span class="text-slate-400">判定狀態：</span><div class="font-bold mt-0.5 ${record.needsReferral ? 'text-red-600' : 'text-emerald-600'}">${record.status}</div></div>
+        </div>
+        <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200 text-xs sm:text-sm text-blue-900">
+          <span class="font-bold">處置與照護建議：</span> ${record.advice}
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-900 mb-2 text-sm">10 題作答明細：</h4>
+          <div class="bg-white rounded-lg border border-slate-200 px-3">${rows}</div>
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-900 mb-1 text-sm">施測備註與觀察記錄：</h4>
+          <p class="text-xs sm:text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">${record.notes || '無特殊備註記錄。'}</p>
+        </div>
+      `;
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    function deleteRecord(id) {
+      if (confirm('確定刪除此筆紀錄？')) {
+        records = records.filter(r => r.id !== id);
+        saveRecordsToStorage();
+        updateAdminDashboard();
+      }
+    }
+  </script>
+</body>
+</html>
