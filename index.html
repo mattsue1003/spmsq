@@ -1,703 +1,578 @@
 
 <!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SPMSQ 簡易心智狀態問卷評估與後台管理系統</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap');
-    body { font-family: 'Noto Sans TC', sans-serif; }
-    .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600; }
-    .badge-normal { background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .badge-mild { background-color: #fef9c3; color: #a16207; border: 1px solid #fef08a; }
-    .badge-moderate { background-color: #ffedd5; color: #c2410c; border: 1px solid #fed7aa; }
-    .badge-severe { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-  </style>
-</head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPMSQ 短式智能評估問卷</title>
+<style>
+  :root{
+    --orange:#E8552D; --amber:#F4A93C; --teal:#028090; --teal-dark:#01606B; --ink:#12343B;
+    --paper:#FBFAF7; --line:#DFE4E4; --muted:#6B7B7E; --ok:#2E8B57;
+    --shadow:0 1px 2px rgba(18,52,59,.06),0 8px 24px rgba(18,52,59,.06);
+    --font:"Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans TC",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);line-height:1.6;-webkit-text-size-adjust:100%}
+  .wrap{max-width:920px;margin:0 auto;padding:0 16px 130px}
+  header.top{border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0;z-index:30}
+  .top-in{max-width:920px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .mark{width:38px;height:38px;border-radius:10px;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+  .ttl{font-size:17px;font-weight:700;margin:0;letter-spacing:.3px}
+  .sub{font-size:12.5px;color:var(--muted);margin:0}
+  .tabs{margin-left:auto;display:flex;gap:6px;background:#F0F3F3;padding:4px;border-radius:10px}
+  .tab{border:0;background:transparent;font-family:var(--font);font-size:14px;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:8px;cursor:pointer}
+  .tab[aria-selected="true"]{background:#fff;color:var(--teal);box-shadow:0 1px 3px rgba(18,52,59,.12)}
+  .tab:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:16px;box-shadow:var(--shadow)}
+  .card h2{font-size:15px;margin:0 0 4px;letter-spacing:.4px}
+  .card .hint{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+  .eyebrow{font-size:11px;letter-spacing:2px;color:var(--teal);font-weight:700;margin:0 0 6px}
+  .notice{background:#FFF6E8;border:1px solid #F3DCB0;border-left:4px solid var(--amber);border-radius:10px;padding:12px 14px;font-size:13px;margin-top:16px;color:#6a4c14}
+  .notice b{color:#5a3f0d}
+  .notice.bad{background:#FDEEE9;border-color:#F0C4B6;border-left-color:var(--orange);color:#8a2f14}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 14px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.full{grid-column:1/-1}
+  label{font-size:13px;font-weight:600}
+  label .req{color:var(--orange)}
+  input[type=text],input[type=number],input[type=date],input[type=password],select,textarea{
+    font-family:var(--font);font-size:14.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+  textarea{resize:vertical;min-height:64px}
+  ol.qs{list-style:none;counter-reset:q;margin:0;padding:0}
+  ol.qs li{counter-increment:q;border-top:1px solid var(--line);padding:14px 0}
+  ol.qs li:first-child{border-top:0;padding-top:2px}
+  .qhead{display:flex;gap:12px;align-items:flex-start}
+  .qnum{flex:none;width:26px;height:26px;border-radius:50%;background:#EAF2F3;color:var(--teal-dark);font-size:13px;font-weight:700;display:grid;place-items:center;margin-top:2px}
+  .qnum::before{content:counter(q)}
+  .qtext{font-size:15px;font-weight:600;margin:0}
+  .qrule{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+  .qbody{margin:10px 0 0 38px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .qbody input[type=text]{flex:1 1 220px;min-width:0}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;flex:none}
+  .seg label{position:relative;margin:0}
+  .seg input{position:absolute;opacity:0;width:0;height:0}
+  .seg span{display:block;padding:8px 16px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;background:#fff;border-left:1px solid var(--line)}
+  .seg label:first-child span{border-left:0}
+  .seg input:checked + span.yes{background:var(--ok);color:#fff}
+  .seg input:checked + span.no{background:var(--orange);color:#fff}
+  .seg input:focus-visible + span{outline:2px solid var(--teal);outline-offset:-2px}
+  .scorebar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 24px rgba(18,52,59,.08);z-index:25}
+  .scorebar-in{max-width:920px;margin:0 auto;padding:12px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .ticks{display:flex;gap:3px;flex:none}
+  .tick{width:20px;height:26px;border-radius:3px;background:#EDF1F1;transition:background .18s ease}
+  .tick.on{background:var(--t)}
+  .scoretxt{font-size:13px;line-height:1.35}
+  .scoretxt b{font-size:16px}
+  .lvl{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12.5px;font-weight:700;color:#fff}
+  .sb-actions{margin-left:auto;display:flex;gap:8px}
+  button.btn{font-family:var(--font);font-size:14px;font-weight:700;border-radius:9px;padding:10px 18px;cursor:pointer;border:1px solid transparent}
+  .btn-primary{background:var(--teal);color:#fff}
+  .btn-primary:hover{background:var(--teal-dark)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
+  .btn-danger{background:#fff;border-color:#E9B7A8;color:var(--orange)}
+  .btn-danger:hover{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .btn-sm{font-size:12.5px;padding:6px 12px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+  .result{text-align:center;padding:26px 20px}
+  .result .big{font-size:44px;font-weight:800;line-height:1.1;margin:8px 0 2px}
+  .result .lvlbox{display:inline-block;padding:8px 22px;border-radius:99px;color:#fff;font-weight:700;font-size:16px;margin:8px 0}
+  .result p{font-size:13.5px;color:var(--muted);margin:6px 0 0}
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .n{font-size:24px;font-weight:800;line-height:1.15}
+  .stat .l{font-size:11.5px;color:var(--muted);letter-spacing:.5px}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
+  .toolbar input[type=text]{max-width:220px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+  th{text-align:left;font-size:11.5px;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--line);padding:8px;white-space:nowrap}
+  td{border-bottom:1px solid #EFF2F2;padding:9px 8px;vertical-align:middle}
+  tbody tr:hover{background:#FAFCFC}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;color:#fff;white-space:nowrap}
+  .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:14px}
+  .lock{max-width:380px;margin:60px auto;text-align:center}
+  dialog{border:0;border-radius:14px;padding:0;max-width:640px;width:calc(100% - 32px);box-shadow:0 20px 60px rgba(18,52,59,.25)}
+  dialog::backdrop{background:rgba(18,52,59,.4)}
+  .dlg-in{padding:22px}
+  .dlg-in h3{margin:0 0 2px;font-size:17px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px;margin:14px 0}
+  .kv dt{color:var(--muted)} .kv dd{margin:0}
+  .ansrow{display:flex;gap:10px;padding:6px 0;border-top:1px solid #EFF2F2;font-size:13.5px}
+  .ansrow .i{width:22px;color:var(--muted);flex:none}
+  .ansrow .m{margin-left:auto;font-weight:700;flex:none}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:var(--ink);color:#fff;padding:11px 20px;border-radius:99px;font-size:13.5px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s,bottom .2s}
+  .toast.show{opacity:1;bottom:110px}
+  .err{color:var(--orange);font-size:12.5px;font-weight:600;margin-top:8px}
+  .loading{color:var(--muted);font-size:13px;padding:14px 0}
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .tabs{margin-left:0;width:100%} .tab{flex:1}
+    .tick{width:14px;height:22px}
+    .sb-actions{width:100%;margin-left:0} .sb-actions .btn{flex:1}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+  @media print{header.top,.scorebar,.tabs,.notice{display:none!important}.card{box-shadow:none;break-inside:avoid}}
+</style>
 
-  <!-- 頂部導航列 -->
-  <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
-          🧠
-        </div>
-        <div>
-          <h1 class="text-lg sm:text-xl font-bold text-slate-900 leading-tight">SPMSQ 心智狀態評估系統</h1>
-          <p class="text-xs text-slate-500">Short Portable Mental Status Questionnaire</p>
-        </div>
-      </div>
-
-      <!-- 切換頁籤 -->
-      <nav class="flex space-x-2 sm:space-x-4">
-        <button id="tabBtnForm" onclick="switchTab('form')" class="px-3 sm:px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center gap-1.5 transition-colors tab-active">
-          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-          <span>問卷施測填寫</span>
-        </button>
-        <button id="tabBtnAdmin" onclick="switchTab('admin')" class="px-3 sm:px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 flex items-center gap-1.5 transition-colors">
-          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-          <span>管理者後台</span>
-          <span id="recordCountBadge" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 font-semibold">0</span>
-        </button>
-      </nav>
+<header class="top">
+  <div class="top-in">
+    <div class="mark">SPM</div>
+    <div>
+      <p class="ttl">SPMSQ 短式智能評估問卷</p>
+      <p class="sub">Short Portable Mental Status Questionnaire</p>
     </div>
-  </header>
-
-  <!-- 主內容區 -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-    <!-- 前台：問卷填寫區 -->
-    <section id="viewForm" class="space-y-6">
-      <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 shadow-sm">
-        <div class="flex items-start space-x-3">
-          <div class="p-2 bg-blue-100 rounded-lg text-blue-600 mt-0.5">
-            <i data-lucide="info" class="w-5 h-5"></i>
-          </div>
-          <div class="text-sm text-blue-900 space-y-1">
-            <h2 class="font-semibold text-base text-blue-950">SPMSQ 施測填寫指引</h2>
-            <p>1. 本量表共有 10 個認知問題，請施測者口頭詢問長者並依實際回答判定。</p>
-            <p>2. 計分方式採<b>「答錯題數」</b>計算（答對 0 分，答錯 1 分），系統將依長者的<b>教育程度</b>進行自動校正評估。</p>
-          </div>
-        </div>
-      </div>
-
-      <form id="spmsqForm" onsubmit="handleFormSubmit(event)" class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-8">
-        <!-- 基本資料 -->
-        <div>
-          <div class="flex items-center space-x-2 pb-3 border-b border-slate-200 mb-5">
-            <i data-lucide="user-check" class="w-5 h-5 text-blue-600"></i>
-            <h3 class="text-lg font-bold text-slate-900">一、 基本受測資料</h3>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">施測日期 <span class="text-red-500">*</span></label>
-              <input type="date" id="evalDate" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">施測人員姓名 <span class="text-red-500">*</span></label>
-              <input type="text" id="assessorName" placeholder="例如：職能治療師" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">受測長者姓名 <span class="text-red-500">*</span></label>
-              <input type="text" id="clientName" placeholder="長者姓名" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">生理性別 <span class="text-red-500">*</span></label>
-              <select id="gender" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-                <option value="">請選擇</option>
-                <option value="男">男</option>
-                <option value="女">女</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">年齡 (歲) <span class="text-red-500">*</span></label>
-              <input type="number" id="age" min="40" max="120" placeholder="例如：75" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">教育程度 (用於校正) <span class="text-red-500">*</span></label>
-              <select id="education" required class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-                <option value="">請選擇教育程度</option>
-                <option value="primary_or_less">小學以下 / 未受正規教育 (容許+1錯題)</option>
-                <option value="junior_high">國中程度 (標準計分)</option>
-                <option value="senior_high_above">高中 / 大專以上 (容許-1錯題)</option>
-              </select>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-3">
-              <label class="block text-sm font-medium text-slate-700 mb-1">聯絡電話 / 居住地址 (選填)</label>
-              <input type="text" id="contactInfo" placeholder="聯絡電話或住址" class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
-            </div>
-          </div>
-        </div>
-
-        <!-- 10 題評估項目 -->
-        <div>
-          <div class="flex items-center justify-between pb-3 border-b border-slate-200 mb-5">
-            <div class="flex items-center space-x-2">
-              <i data-lucide="help-circle" class="w-5 h-5 text-blue-600"></i>
-              <h3 class="text-lg font-bold text-slate-900">二、 SPMSQ 10 題評估項目</h3>
-            </div>
-            <span class="text-xs text-slate-500">※ 答錯請選「錯誤 (1分)」</span>
-          </div>
-          <div class="space-y-4" id="questionsContainer"></div>
-        </div>
-
-        <!-- 備註 -->
-        <div>
-          <div class="flex items-center space-x-2 pb-3 border-b border-slate-200 mb-5">
-            <i data-lucide="message-square" class="w-5 h-5 text-blue-600"></i>
-            <h3 class="text-lg font-bold text-slate-900">三、 施測觀察與備註</h3>
-          </div>
-          <textarea id="notes" rows="3" placeholder="請記錄長者作答過程中的反應、情緒、肢體狀況或特殊生活背景..." class="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"></textarea>
-        </div>
-
-        <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-end items-center gap-3">
-          <button type="button" onclick="document.getElementById('spmsqForm').reset(); initFormDate();" class="w-full sm:w-auto px-5 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium">重設表單</button>
-          <button type="submit" class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold shadow flex items-center justify-center gap-2">
-            <i data-lucide="send" class="w-4 h-4"></i>
-            <span>提交並記錄至後台</span>
-          </button>
-        </div>
-      </form>
-    </section>
-
-    <!-- 後台：管理者儀表板 -->
-    <section id="viewAdmin" class="space-y-6 hidden">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center space-x-3">
-          <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-            <i data-lucide="shield-check" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">管理者控制台</h2>
-            <p class="text-xs text-slate-500">即時監控 SPMSQ 問卷填寫數據、認知分數分佈與轉介狀態</p>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-          <button onclick="loadSample20Data()" class="px-3.5 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <i data-lucide="users" class="w-4 h-4"></i>
-            <span>一鍵匯入 20 筆示範資料</span>
-          </button>
-          <button onclick="exportToCSV()" class="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <i data-lucide="download" class="w-4 h-4"></i>
-            <span>匯出 CSV 報表</span>
-          </button>
-          <button onclick="clearAllData()" class="px-3.5 py-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-xs font-semibold rounded-lg flex items-center gap-1.5">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-            <span>清空資料</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- KPI 統計數字 -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <span class="text-xs text-slate-500 font-medium">總評估人次</span>
-          <div class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotal">0</div>
-          <div class="text-xs text-slate-400 mt-1">累計長者</div>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-green-200 bg-green-50/40 shadow-sm">
-          <span class="text-xs text-green-700 font-medium">心智功能正常</span>
-          <div class="text-2xl font-bold text-green-600 mt-1" id="kpiNormal">0</div>
-          <div class="text-xs text-green-600 mt-1" id="kpiNormalRate">0%</div>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-yellow-200 bg-yellow-50/40 shadow-sm">
-          <span class="text-xs text-yellow-700 font-medium">輕度心智缺損</span>
-          <div class="text-2xl font-bold text-yellow-600 mt-1" id="kpiMild">0</div>
-          <div class="text-xs text-yellow-600 mt-1" id="kpiMildRate">0%</div>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-orange-200 bg-orange-50/40 shadow-sm">
-          <span class="text-xs text-orange-700 font-medium">中度心智缺損</span>
-          <div class="text-2xl font-bold text-orange-600 mt-1" id="kpiModerate">0</div>
-          <div class="text-xs text-orange-600 mt-1" id="kpiModerateRate">0%</div>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-red-200 bg-red-50/40 shadow-sm">
-          <span class="text-xs text-red-700 font-medium">重度心智缺損</span>
-          <div class="text-2xl font-bold text-red-600 mt-1" id="kpiSevere">0</div>
-          <div class="text-xs text-red-600 mt-1" id="kpiSevereRate">0%</div>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 shadow-sm">
-          <span class="text-xs text-indigo-700 font-medium">建議就醫轉介</span>
-          <div class="text-2xl font-bold text-indigo-600 mt-1" id="kpiReferral">0</div>
-          <div class="text-xs text-indigo-600 mt-1">需醫療介入</div>
-        </div>
-      </div>
-
-      <!-- 圖表分析區 -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-7 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">答錯題數分數分佈 (0～10 題)</h3>
-          <p class="text-xs text-slate-500 mb-4">橫軸為答錯題數，縱軸為人數</p>
-          <div class="h-64 sm:h-72"><canvas id="scoreDistributionChart"></canvas></div>
-        </div>
-        <div class="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">認知狀態分級比例</h3>
-          <p class="text-xs text-slate-500 mb-4">含教育程度校正判定結果</p>
-          <div class="h-64 sm:h-72 flex items-center justify-center"><canvas id="statusPieChart"></canvas></div>
-        </div>
-        <div class="lg:col-span-12 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <h3 class="font-bold text-slate-900 text-sm sm:text-base mb-1">各題答錯率分析 (Q1 ～ Q10)</h3>
-          <p class="text-xs text-slate-500 mb-4">分析長者在哪些心智向度最容易發生障礙</p>
-          <div class="h-64 sm:h-72"><canvas id="questionErrorChart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- 表格清單 -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h3 class="font-bold text-slate-900 text-base">受測者紀錄清單</h3>
-            <p class="text-xs text-slate-500">點選「詳情」可瀏覽每位長者完整 10 題作答記錄</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-            <input type="text" id="tableSearch" oninput="renderTable()" placeholder="搜尋姓名 / 施測者..." class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500">
-            <select id="statusFilter" onchange="renderTable()" class="px-3 py-1.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500">
-              <option value="all">所有認知狀態</option>
-              <option value="正常">心智功能正常</option>
-              <option value="輕度">輕度心智缺損</option>
-              <option value="中度">中度心智缺損</option>
-              <option value="重度">重度心智缺損</option>
-              <option value="referral">需轉介就醫</option>
-            </select>
-          </div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
-              <tr>
-                <th class="py-3 px-4">#</th>
-                <th class="py-3 px-4">施測日期</th>
-                <th class="py-3 px-4">受測長者</th>
-                <th class="py-3 px-4">性別 / 年齡</th>
-                <th class="py-3 px-4">教育程度</th>
-                <th class="py-3 px-4">施測者</th>
-                <th class="py-3 px-4 text-center">錯題數</th>
-                <th class="py-3 px-4 text-center">評估結果</th>
-                <th class="py-3 px-4 text-center">處置建議</th>
-                <th class="py-3 px-4 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody id="recordsTableBody" class="divide-y divide-slate-200 text-slate-700 text-xs sm:text-sm"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- 詳情彈出視窗 -->
-  <div id="detailModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6">
-      <div class="flex justify-between items-center pb-4 border-b border-slate-200">
-        <div>
-          <h3 class="text-lg font-bold text-slate-900" id="modalClientTitle">SPMSQ 評估詳情</h3>
-          <p class="text-xs text-slate-500" id="modalSubTitle"></p>
-        </div>
-        <button onclick="closeDetailModal()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-      <div id="modalContent" class="space-y-4 text-sm"></div>
-      <div class="pt-4 border-t border-slate-200 flex justify-end">
-        <button onclick="closeDetailModal()" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">關閉</button>
-      </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tab-form" role="tab" aria-selected="true" onclick="showView('form')">填寫問卷</button>
+      <button class="tab" id="tab-admin" role="tab" aria-selected="false" onclick="showView('admin')">管理後台</button>
     </div>
   </div>
+</header>
 
-  <script>
-    const SPMSQ_QUESTIONS = [
-      { id: 'q1', text: '1. 今天是幾號？（年、月、日）', hint: '評分指引：年、月、日均需正確才算答對。' },
-      { id: 'q2', text: '2. 今天是星期幾？', hint: '評分指引：星期正確才算答對。' },
-      { id: 'q3', text: '3. 這是什麼地方？', hint: '評分指引：對所在地有具體描述即可（如說出「我的家」、醫院、機構或城鎮名均可）。' },
-      { id: 'q4', text: '4. 您的電話號碼是幾號？（若無電話改問：地址/住在哪裡）', hint: '評分指引：經確認電話/住址無誤，或訪談期間兩次間隔回答一致即算正確。' },
-      { id: 'q5', text: '5. 您今年幾歲了？', hint: '評分指引：年齡需與出生年月日換算相符才算正確。' },
-      { id: 'q6', text: '6. 您的出生年月日是幾月幾號？', hint: '評分指引：出生年、月、日均需正確才算答對。' },
-      { id: 'q7', text: '7. 現任的總統是誰？', hint: '評分指引：姓氏正確即可。' },
-      { id: 'q8', text: '8. 前任的總統是誰？', hint: '評分指引：姓氏正確即可。' },
-      { id: 'q9', text: '9. 您的母親叫什麼名字？', hint: '評分指引：長輩能說出一個與自己不同的女性姓名即可。' },
-      { id: 'q10', text: '10. 從 20 開始每次減 3，一直減下去（20-3=17, 14, 11, 8, 5, 2）', hint: '評分指引：連續減 3 計算，期間若有任何數字錯誤或中斷即算錯誤。' }
-    ];
+<div class="wrap">
+  <div class="notice bad" id="cfg-warn" hidden>
+    <b>尚未設定 API 網址。</b>請打開 index.html，把最上方的 <code>API_URL</code> 換成你的 Apps Script 網頁應用程式網址，資料才會寫進試算表。
+  </div>
 
-    let records = [];
-    let scoreChart = null, pieChart = null, questionChart = null;
+  <section id="view-form">
+    <div class="card">
+      <p class="eyebrow">受測者資料</p>
+      <h2>先填基本資料，再開始施測</h2>
+      <p class="hint">教育程度會影響判讀標準，請務必勾選。</p>
+      <div class="grid">
+        <div class="field"><label for="f-name">姓名或代號 <span class="req">*</span></label><input type="text" id="f-name" placeholder="例如：王大明 或 A001"></div>
+        <div class="field"><label for="f-tester">施測者</label><input type="text" id="f-tester" placeholder="填寫施測人員姓名"></div>
+        <div class="field"><label for="f-age">年齡</label><input type="number" id="f-age" min="0" max="130" placeholder="歲"></div>
+        <div class="field"><label for="f-gender">性別</label>
+          <select id="f-gender"><option value="">未填</option><option>女</option><option>男</option><option>其他</option></select></div>
+        <div class="field"><label for="f-edu">教育程度 <span class="req">*</span></label>
+          <select id="f-edu">
+            <option value="">請選擇</option>
+            <option value="low">不識字／國小以下（容許多錯 1 題）</option>
+            <option value="mid">國中、高中職（標準判讀）</option>
+            <option value="high">大專以上（需少錯 1 題）</option>
+          </select></div>
+        <div class="field"><label for="f-date">施測日期</label><input type="date" id="f-date"></div>
+        <div class="field full"><label for="f-unit">單位／場域</label><input type="text" id="f-unit" placeholder="例如：居家、日照中心、社區據點"></div>
+      </div>
+    </div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-      initFormDate();
-      renderQuestionItems();
-      loadStoredRecords();
-      lucide.createIcons();
-    });
+    <div class="card">
+      <p class="eyebrow">十題施測</p>
+      <h2>逐題詢問，答錯或答不出來即記為「錯誤」</h2>
+      <p class="hint">右側可記錄個案的實際回答，方便日後回溯。</p>
+      <ol class="qs" id="qlist"></ol>
+      <div class="field full" style="margin-top:16px">
+        <label for="f-note">觀察紀錄</label>
+        <textarea id="f-note" placeholder="例如：情緒、配合度、聽力狀況、是否有家屬提示等"></textarea>
+      </div>
+      <p class="err" id="form-err" hidden></p>
+    </div>
 
-    function initFormDate() {
-      const today = new Date().toISOString().split('T')[0];
-      const dateEl = document.getElementById('evalDate');
-      if (dateEl) dateEl.value = today;
-    }
+    <div class="notice">
+      <b>關於資料儲存：</b>送出後會寫入管理者的 Google 試算表。請勿填寫完整身分證字號、病歷號等高敏感個資，建議以代號取代姓名。
+    </div>
+  </section>
 
-    function renderQuestionItems() {
-      const container = document.getElementById('questionsContainer');
-      if (!container) return;
-      container.innerHTML = SPMSQ_QUESTIONS.map((item) => `
-        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-slate-50 transition-colors">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="space-y-1">
-              <div class="font-semibold text-slate-900 text-sm sm:text-base">${item.text}</div>
-              <div class="text-xs text-slate-500 flex items-center gap-1">
-                <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400"></i>
-                <span>${item.hint}</span>
-              </div>
-            </div>
-            <div class="flex items-center space-x-3 shrink-0">
-              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-slate-200 hover:border-blue-400">
-                <input type="radio" name="${item.id}" value="0" checked class="text-blue-600">
-                <span class="text-xs sm:text-sm font-medium text-emerald-700">答對 (0分)</span>
-              </label>
-              <label class="flex items-center space-x-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-slate-200 hover:border-red-400">
-                <input type="radio" name="${item.id}" value="1" class="text-red-600">
-                <span class="text-xs sm:text-sm font-medium text-red-600">答錯 (1分)</span>
-              </label>
-            </div>
+  <section id="view-done" hidden>
+    <div class="card result">
+      <p class="eyebrow">已送出</p>
+      <div class="big" id="done-err">—</div>
+      <div style="font-size:13px;color:var(--muted)">題錯誤（校正後）</div>
+      <div class="lvlbox" id="done-lvl">—</div>
+      <p id="done-raw"></p>
+      <p id="done-name"></p>
+      <div style="margin-top:22px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="newForm()">再填一份</button>
+        <button class="btn btn-ghost" onclick="window.print()">列印這一份</button>
+      </div>
+    </div>
+    <div class="notice">SPMSQ 為篩檢工具，不能單獨作為失智症診斷依據。結果異常時，請轉介醫師進一步評估。</div>
+  </section>
+
+  <section id="view-admin" hidden>
+    <div id="lock" class="lock">
+      <div class="card">
+        <p class="eyebrow">管理後台</p>
+        <h2 style="margin-bottom:14px">輸入管理密碼</h2>
+        <input type="password" id="pw" style="text-align:center" placeholder="密碼" onkeydown="if(event.key==='Enter')unlock()">
+        <p class="err" id="pw-err" hidden></p>
+        <button class="btn btn-primary" style="width:100%;margin-top:12px" id="btn-unlock" onclick="unlock()">進入後台</button>
+        <p class="hint" style="margin-top:14px">密碼由 Apps Script 端驗證，設定在 Code.gs 的 ADMIN_PASSCODE。</p>
+      </div>
+    </div>
+
+    <div id="panel" hidden>
+      <div class="stats" style="margin-top:16px">
+        <div class="stat"><div class="n" id="s-total">0</div><div class="l">總填答份數</div></div>
+        <div class="stat"><div class="n" id="s-l0" style="color:var(--ok)">0</div><div class="l">心智功能完整</div></div>
+        <div class="stat"><div class="n" id="s-l1" style="color:var(--amber)">0</div><div class="l">輕度障礙</div></div>
+        <div class="stat"><div class="n" id="s-l2" style="color:var(--orange)">0</div><div class="l">中度障礙</div></div>
+        <div class="stat"><div class="n" id="s-l3" style="color:#A32B12">0</div><div class="l">重度障礙</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div><p class="eyebrow">填答紀錄</p><h2 style="margin-bottom:0">所有已送出的問卷</h2></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="loadRecords()">重新整理</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
           </div>
         </div>
-      `).join('');
-      lucide.createIcons();
-    }
-
-    function switchTab(tab) {
-      const btnForm = document.getElementById('tabBtnForm');
-      const btnAdmin = document.getElementById('tabBtnAdmin');
-      const viewForm = document.getElementById('viewForm');
-      const viewAdmin = document.getElementById('viewAdmin');
-
-      if (tab === 'form') {
-        btnForm.classList.add('tab-active');
-        btnAdmin.classList.remove('tab-active');
-        viewForm.classList.remove('hidden');
-        viewAdmin.classList.add('hidden');
-      } else {
-        btnAdmin.classList.add('tab-active');
-        btnForm.classList.remove('tab-active');
-        viewAdmin.classList.remove('hidden');
-        viewForm.classList.add('hidden');
-        updateAdminDashboard();
-      }
-      lucide.createIcons();
-    }
-
-    function evaluateSPMSQ(rawErrors, education) {
-      let status = '', statusCode = '', advice = '';
-      if (education === 'primary_or_less') {
-        if (rawErrors <= 3) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
-        else if (rawErrors <= 5) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
-        else if (rawErrors <= 8) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
-        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
-      } else if (education === 'senior_high_above') {
-        if (rawErrors <= 1) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
-        else if (rawErrors <= 3) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
-        else if (rawErrors <= 6) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
-        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
-      } else {
-        if (rawErrors <= 2) { status = '心智功能正常'; statusCode = 'normal'; advice = '維持健康作息並定期追蹤。'; }
-        else if (rawErrors <= 4) { status = '輕度心智缺損'; statusCode = 'mild'; advice = '建議轉介醫院神經內科或精神科進行詳細失智症診斷。'; }
-        else if (rawErrors <= 7) { status = '中度心智缺損'; statusCode = 'moderate'; advice = '建議盡速就醫，並安排日照中心或居家復能與安全防護。'; }
-        else { status = '重度心智缺損'; statusCode = 'severe'; advice = '建議整合醫療評估，提供全面長照支持與防走失措施。'; }
-      }
-      return { status, statusCode, advice, needsReferral: statusCode !== 'normal' };
-    }
-
-    function handleFormSubmit(e) {
-      e.preventDefault();
-      const evalDate = document.getElementById('evalDate').value;
-      const assessorName = document.getElementById('assessorName').value.trim();
-      const clientName = document.getElementById('clientName').value.trim();
-      const gender = document.getElementById('gender').value;
-      const age = parseInt(document.getElementById('age').value);
-      const education = document.getElementById('education').value;
-      const contactInfo = document.getElementById('contactInfo').value.trim();
-      const notes = document.getElementById('notes').value.trim();
-
-      const answers = {};
-      let rawErrors = 0;
-      SPMSQ_QUESTIONS.forEach(q => {
-        const val = parseInt(document.querySelector(`input[name="${q.id}"]:checked`).value);
-        answers[q.id] = val;
-        rawErrors += val;
-      });
-
-      const evalResult = evaluateSPMSQ(rawErrors, education);
-      const record = {
-        id: 'REC_' + Date.now(),
-        timestamp: new Date().toLocaleString('zh-TW', { hour12: false }),
-        evalDate, assessorName, clientName, gender, age, education, contactInfo, notes,
-        answers, rawErrors, ...evalResult
-      };
-
-      records.unshift(record);
-      saveRecordsToStorage();
-
-      alert(`✅ 評估資料已記錄！\n【個案】${clientName} (${age}歲)\n【錯題數】${rawErrors} 題\n【判定結果】${evalResult.status}`);
-      document.getElementById('spmsqForm').reset();
-      initFormDate();
-      switchTab('admin');
-    }
-
-    function saveRecordsToStorage() {
-      localStorage.setItem('SPMSQ_RECORDS', JSON.stringify(records));
-      const badge = document.getElementById('recordCountBadge');
-      if (badge) badge.innerText = records.length;
-    }
-
-    function loadStoredRecords() {
-      const data = localStorage.getItem('SPMSQ_RECORDS');
-      if (data) {
-        try { records = JSON.parse(data); } catch(e) { records = []; }
-      }
-      const badge = document.getElementById('recordCountBadge');
-      if (badge) badge.innerText = records.length;
-    }
-
-    function loadSample20Data() {
-      if (records.length > 0 && !confirm('確定載入 20 筆示範資料嗎？')) return;
-      const sampleNames = [
-        { name: '陳水生', gender: '男', age: 78, edu: 'primary_or_less', errors: 2, assessor: '鍾治療師' },
-        { name: '林金枝', gender: '女', age: 82, edu: 'primary_or_less', errors: 5, assessor: '鍾治療師' },
-        { name: '張阿滿', gender: '女', age: 75, edu: 'junior_high', errors: 1, assessor: '王個管師' },
-        { name: '黃文雄', gender: '男', age: 80, edu: 'junior_high', errors: 4, assessor: '王個管師' },
-        { name: '李國華', gender: '男', age: 69, edu: 'senior_high_above', errors: 0, assessor: '李護理師' },
-        { name: '吳秀琴', gender: '女', age: 86, edu: 'primary_or_less', errors: 7, assessor: '李護理師' },
-        { name: '蔡德福', gender: '男', age: 73, edu: 'senior_high_above', errors: 3, assessor: '鍾治療師' },
-        { name: '趙玉蘭', gender: '女', age: 79, edu: 'junior_high', errors: 6, assessor: '鍾治療師' },
-        { name: '孫阿發', gender: '男', age: 88, edu: 'primary_or_less', errors: 9, assessor: '陳志工' },
-        { name: '劉春梅', gender: '女', age: 71, edu: 'senior_high_above', errors: 1, assessor: '陳志工' },
-        { name: '許正義', gender: '男', age: 76, edu: 'junior_high', errors: 3, assessor: '王個管師' },
-        { name: '楊碧蓮', gender: '女', age: 84, edu: 'primary_or_less', errors: 4, assessor: '王個管師' },
-        { name: '周志強', gender: '男', age: 68, edu: 'senior_high_above', errors: 2, assessor: '李護理師' },
-        { name: '何月娥', gender: '女', age: 77, edu: 'junior_high', errors: 0, assessor: '李護理師' },
-        { name: '郭添財', gender: '男', age: 81, edu: 'primary_or_less', errors: 6, assessor: '鍾治療師' },
-        { name: '洪麗華', gender: '女', age: 74, edu: 'junior_high', errors: 5, assessor: '鍾治療師' },
-        { name: '葉俊宏', gender: '男', age: 70, edu: 'senior_high_above', errors: 8, assessor: '鍾治療師' },
-        { name: '施玉葉', gender: '女', age: 85, edu: 'primary_or_less', errors: 3, assessor: '陳志工' },
-        { name: '蘇慶隆', gender: '男', age: 79, edu: 'junior_high', errors: 2, assessor: '王個管師' },
-        { name: '潘秀珍', gender: '女', age: 83, edu: 'primary_or_less', errors: 1, assessor: '王個管師' }
-      ];
-
-      const errorPool = ['q10', 'q8', 'q7', 'q6', 'q1', 'q5', 'q4', 'q3', 'q9', 'q2'];
-      records = sampleNames.map((s, idx) => {
-        const answers = {};
-        for (let i = 1; i <= 10; i++) answers['q' + i] = 0;
-        for (let e = 0; e < s.errors; e++) answers[errorPool[e]] = 1;
-        const evalResult = evaluateSPMSQ(s.errors, s.edu);
-        const day = (10 + (idx % 12)).toString().padStart(2, '0');
-        return {
-          id: 'SAMPLE_' + (idx + 1),
-          timestamp: `2026/08/${day} 10:30:00`,
-          evalDate: `2026-08-${day}`,
-          assessorName: s.assessor, clientName: s.name, gender: s.gender, age: s.age,
-          education: s.edu, contactInfo: '09' + Math.floor(10000000 + Math.random()*90000000),
-          notes: s.errors >= 5 ? '計算與近事記憶需進一步關注。' : '作答反應良好。',
-          answers, rawErrors: s.errors, ...evalResult
-        };
-      });
-      saveRecordsToStorage();
-      updateAdminDashboard();
-      alert('🎉 成功匯入 20 筆標準評估模擬資料！');
-    }
-
-    function clearAllData() {
-      if (confirm('確定清空所有評估紀錄嗎？')) {
-        records = [];
-        saveRecordsToStorage();
-        updateAdminDashboard();
-      }
-    }
-
-    function exportToCSV() {
-      if (records.length === 0) return alert('目前無評估資料可匯出。');
-      let csv = '\uFEFF編號,填寫時間,施測日期,施測者,受測長者,性別,年齡,教育程度,聯絡資訊,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,原始錯題數,評估狀態,處置建議,備註\n';
-      records.forEach((r, idx) => {
-        const edu = r.education === 'primary_or_less' ? '小學以下' : r.education === 'junior_high' ? '國中' : '高中大專以上';
-        csv += [
-          idx + 1, `"${r.timestamp}"`, r.evalDate, `"${r.assessorName}"`, `"${r.clientName}"`,
-          r.gender, r.age, `"${edu}"`, `"${r.contactInfo || ''}"`,
-          r.answers.q1, r.answers.q2, r.answers.q3, r.answers.q4, r.answers.q5,
-          r.answers.q6, r.answers.q7, r.answers.q8, r.answers.q9, r.answers.q10,
-          r.rawErrors, `"${r.status}"`, `"${r.needsReferral ? '建議轉介' : '正常觀察'}"`,
-          `"${(r.notes || '').replace(/"/g, '""')}"`
-        ].join(',') + '\n';
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `SPMSQ_評估總表_${new Date().toISOString().split('T')[0]}.csv`;
-      link.click();
-    }
-
-    function updateAdminDashboard() {
-      const total = records.length;
-      const normal = records.filter(r => r.statusCode === 'normal').length;
-      const mild = records.filter(r => r.statusCode === 'mild').length;
-      const moderate = records.filter(r => r.statusCode === 'moderate').length;
-      const severe = records.filter(r => r.statusCode === 'severe').length;
-      const referral = records.filter(r => r.needsReferral).length;
-
-      document.getElementById('kpiTotal').innerText = total;
-      document.getElementById('kpiNormal').innerText = normal;
-      document.getElementById('kpiNormalRate').innerText = total ? `${Math.round((normal/total)*100)}%` : '0%';
-      document.getElementById('kpiMild').innerText = mild;
-      document.getElementById('kpiMildRate').innerText = total ? `${Math.round((mild/total)*100)}%` : '0%';
-      document.getElementById('kpiModerate').innerText = moderate;
-      document.getElementById('kpiModerateRate').innerText = total ? `${Math.round((moderate/total)*100)}%` : '0%';
-      document.getElementById('kpiSevere').innerText = severe;
-      document.getElementById('kpiSevereRate').innerText = total ? `${Math.round((severe/total)*100)}%` : '0%';
-      document.getElementById('kpiReferral').innerText = referral;
-
-      renderCharts();
-      renderTable();
-    }
-
-    function renderCharts() {
-      // 錯題數直方圖
-      const ctxScore = document.getElementById('scoreDistributionChart');
-      if (ctxScore) {
-        const bins = Array(11).fill(0);
-        records.forEach(r => bins[Math.min(Math.max(r.rawErrors, 0), 10)]++);
-        if (scoreChart) scoreChart.destroy();
-        scoreChart = new Chart(ctxScore, {
-          type: 'bar',
-          data: {
-            labels: ['0題','1題','2題','3題','4題','5題','6題','7題','8題','9題','10題'],
-            datasets: [{
-              data: bins,
-              backgroundColor: ['#10b981','#10b981','#10b981','#eab308','#eab308','#f97316','#f97316','#f97316','#ef4444','#ef4444','#ef4444'],
-              borderRadius: 6
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
-        });
-      }
-
-      // 圓餅圖
-      const ctxPie = document.getElementById('statusPieChart');
-      if (ctxPie) {
-        const normal = records.filter(r => r.statusCode === 'normal').length;
-        const mild = records.filter(r => r.statusCode === 'mild').length;
-        const moderate = records.filter(r => r.statusCode === 'moderate').length;
-        const severe = records.filter(r => r.statusCode === 'severe').length;
-        if (pieChart) pieChart.destroy();
-        pieChart = new Chart(ctxPie, {
-          type: 'doughnut',
-          data: {
-            labels: ['心智功能正常', '輕度心智缺損', '中度心智缺損', '重度心智缺損'],
-            datasets: [{
-              data: records.length ? [normal, mild, moderate, severe] : [1,0,0,0],
-              backgroundColor: ['#22c55e', '#eab308', '#f97316', '#ef4444'],
-              borderWidth: 2, borderColor: '#fff'
-            }]
-          },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }, cutout: '65%' }
-        });
-      }
-
-      // 錯誤率分析
-      const ctxQ = document.getElementById('questionErrorChart');
-      if (ctxQ) {
-        const errorCounts = Array(10).fill(0);
-        records.forEach(r => {
-          for (let i = 1; i <= 10; i++) if (r.answers['q' + i] === 1) errorCounts[i - 1]++;
-        });
-        const total = records.length || 1;
-        const percentages = errorCounts.map(c => Math.round((c / total) * 100));
-        if (questionChart) questionChart.destroy();
-        questionChart = new Chart(ctxQ, {
-          type: 'bar',
-          data: {
-            labels: ['Q1 今天幾號', 'Q2 星期幾', 'Q3 所在地點', 'Q4 電話/地址', 'Q5 長者年齡', 'Q6 出生年月日', 'Q7 現任總統', 'Q8 前任總統', 'Q9 母親姓名', 'Q10 連續減3'],
-            datasets: [{ label: '答錯率 (%)', data: percentages, backgroundColor: '#3b82f6', borderRadius: 4 }]
-          },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } } }
-        });
-      }
-    }
-
-    function renderTable() {
-      const tbody = document.getElementById('recordsTableBody');
-      if (!tbody) return;
-      const query = (document.getElementById('tableSearch')?.value || '').toLowerCase();
-      const statusFilter = document.getElementById('statusFilter')?.value || 'all';
-
-      const filtered = records.filter(r => {
-        const matchQuery = r.clientName.toLowerCase().includes(query) || r.assessorName.toLowerCase().includes(query);
-        let matchStatus = true;
-        if (statusFilter === 'referral') matchStatus = r.needsReferral;
-        else if (statusFilter === '正常') matchStatus = r.statusCode === 'normal';
-        else if (statusFilter === '輕度') matchStatus = r.statusCode === 'mild';
-        else if (statusFilter === '中度') matchStatus = r.statusCode === 'moderate';
-        else if (statusFilter === '重度') matchStatus = r.statusCode === 'severe';
-        return matchQuery && matchStatus;
-      });
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="py-8 text-center text-slate-400">目前尚無符合條件的評估紀錄</td></tr>`;
-        return;
-      }
-
-      const eduMap = { 'primary_or_less': '小學以下', 'junior_high': '國中', 'senior_high_above': '高中以上' };
-      tbody.innerHTML = filtered.map((r, idx) => `
-        <tr class="hover:bg-slate-50/80 transition-colors">
-          <td class="py-3 px-4 font-mono text-xs text-slate-400">${idx + 1}</td>
-          <td class="py-3 px-4">${r.evalDate}</td>
-          <td class="py-3 px-4 font-semibold text-slate-900">${r.clientName}</td>
-          <td class="py-3 px-4">${r.gender} / ${r.age}歲</td>
-          <td class="py-3 px-4 text-slate-600">${eduMap[r.education] || r.education}</td>
-          <td class="py-3 px-4 text-slate-600">${r.assessorName}</td>
-          <td class="py-3 px-4 text-center font-bold text-slate-800">${r.rawErrors} / 10</td>
-          <td class="py-3 px-4 text-center"><span class="px-2.5 py-1 text-xs font-semibold rounded-full badge-${r.statusCode}">${r.status}</span></td>
-          <td class="py-3 px-4 text-center">${r.needsReferral ? '<span class="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">建議轉介</span>' : '<span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">正常觀察</span>'}</td>
-          <td class="py-3 px-4 text-right space-x-2">
-            <button onclick="viewRecordDetail('${r.id}')" class="text-blue-600 hover:text-blue-800 font-medium text-xs">詳情</button>
-            <button onclick="deleteRecord('${r.id}')" class="text-red-500 hover:text-red-700 font-medium text-xs">刪除</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function viewRecordDetail(id) {
-      const record = records.find(r => r.id === id);
-      if (!record) return;
-      const eduMap = { 'primary_or_less': '小學以下 (容許+1錯題)', 'junior_high': '國中 (標準)', 'senior_high_above': '高中大專以上 (容許-1錯題)' };
-      document.getElementById('modalClientTitle').innerText = `${record.clientName} 的 SPMSQ 評估報告`;
-      document.getElementById('modalSubTitle').innerText = `施測日期：${record.evalDate} ｜ 施測者：${record.assessorName}`;
-      
-      let rows = SPMSQ_QUESTIONS.map(q => `
-        <div class="flex items-center justify-between py-2 border-b border-slate-100 text-xs sm:text-sm">
-          <span class="text-slate-700 font-medium">${q.text}</span>
-          <span class="font-bold px-2 py-0.5 rounded text-xs ${record.answers[q.id] === 1 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">
-            ${record.answers[q.id] === 1 ? '答錯 (+1)' : '答對 (0)'}
-          </span>
+        <div class="toolbar">
+          <input type="text" id="q-search" placeholder="搜尋姓名／代號／施測者" oninput="renderTable()">
+          <select id="q-level" onchange="renderTable()" style="width:auto">
+            <option value="">全部程度</option><option value="0">心智功能完整</option>
+            <option value="1">輕度障礙</option><option value="2">中度障礙</option><option value="3">重度障礙</option>
+          </select>
+          <select id="q-sort" onchange="renderTable()" style="width:auto">
+            <option value="new">最新在前</option><option value="old">最舊在前</option>
+            <option value="err">錯誤題數多在前</option><option value="name">依姓名排序</option>
+          </select>
         </div>
-      `).join('');
+        <div id="tbl-area"><p class="loading">載入中…</p></div>
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">清空全部紀錄</button>
+      </div>
+    </div>
+  </section>
+</div>
 
-      document.getElementById('modalContent').innerHTML = `
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-          <div><span class="text-slate-400">性別 / 年齡：</span><div class="font-semibold text-slate-800 mt-0.5">${record.gender} / ${record.age}歲</div></div>
-          <div><span class="text-slate-400">教育程度：</span><div class="font-semibold text-slate-800 mt-0.5">${eduMap[record.education]}</div></div>
-          <div><span class="text-slate-400">答錯題數：</span><div class="font-bold text-slate-900 mt-0.5">${record.rawErrors} / 10 題</div></div>
-          <div><span class="text-slate-400">判定狀態：</span><div class="font-bold mt-0.5 ${record.needsReferral ? 'text-red-600' : 'text-emerald-600'}">${record.status}</div></div>
-        </div>
-        <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200 text-xs sm:text-sm text-blue-900">
-          <span class="font-bold">處置與照護建議：</span> ${record.advice}
-        </div>
-        <div>
-          <h4 class="font-bold text-slate-900 mb-2 text-sm">10 題作答明細：</h4>
-          <div class="bg-white rounded-lg border border-slate-200 px-3">${rows}</div>
-        </div>
-        <div>
-          <h4 class="font-bold text-slate-900 mb-1 text-sm">施測備註與觀察記錄：</h4>
-          <p class="text-xs sm:text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">${record.notes || '無特殊備註記錄。'}</p>
-        </div>
-      `;
-      document.getElementById('detailModal').classList.remove('hidden');
-    }
+<div class="scorebar" id="scorebar">
+  <div class="scorebar-in">
+    <div class="ticks" id="ticks"></div>
+    <div class="scoretxt">
+      <div>錯誤 <b id="sb-err">0</b> 題　<span class="lvl" id="sb-lvl" style="background:#9AA9AC">尚未作答</span></div>
+      <div style="color:var(--muted);font-size:12px" id="sb-adj">請先選擇教育程度</div>
+    </div>
+    <div class="sb-actions">
+      <button class="btn btn-ghost" onclick="resetForm()">清除重填</button>
+      <button class="btn btn-primary" id="btn-submit" onclick="submitForm()">送出問卷</button>
+    </div>
+  </div>
+</div>
 
-    function closeDetailModal() {
-      document.getElementById('detailModal').classList.add('hidden');
-    }
+<dialog id="dlg"><div class="dlg-in" id="dlg-in"></div></dialog>
+<div class="toast" id="toast"></div>
 
-    function deleteRecord(id) {
-      if (confirm('確定刪除此筆紀錄？')) {
-        records = records.filter(r => r.id !== id);
-        saveRecordsToStorage();
-        updateAdminDashboard();
-      }
-    }
-  </script>
-</body>
+<script>
+/* ===================================================================
+   把下面這行換成你的 Apps Script 網頁應用程式網址（結尾是 /exec）
+   =================================================================== */
+const API_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+/* =================================================================== */
+
+const QUESTIONS = [
+  { t:"今天是幾年幾月幾日？",        r:"年、月、日三者全對才算正確" },
+  { t:"今天是星期幾？",              r:"說對星期幾即正確" },
+  { t:"這裡是什麼地方？",            r:"能說出地點名稱、類型或地址皆可" },
+  { t:"您的電話號碼幾號？",          r:"家中無電話者改問住址；能覆誦兩次相同即正確" },
+  { t:"您今年幾歲？",                r:"與出生年月日推算相符即正確" },
+  { t:"您的出生年月日？",            r:"年、月、日三者全對才算正確" },
+  { t:"現任總統是誰？",              r:"說出姓氏或全名皆可" },
+  { t:"前任總統是誰？",              r:"說出姓氏或全名皆可" },
+  { t:"您媽媽叫什麼名字？",          r:"不須查證，能明確回答即正確" },
+  { t:"從 20 開始減 3，一直減下去。", r:"20-17-14-11-8-5-2 全對才算正確，中途錯一次即記錯誤" }
+];
+const LEVELS = [
+  { name:"心智功能完整",    color:"#2E8B57" },
+  { name:"輕度心智功能障礙", color:"#F4A93C" },
+  { name:"中度心智功能障礙", color:"#E8552D" },
+  { name:"重度心智功能障礙", color:"#A32B12" }
+];
+const EDU_LABEL = { low:'國小以下', mid:'國中／高中職', high:'大專以上', '':'未填' };
+
+let records = [];
+let adminPass = "";
+
+/* ---------- API：一律用 text/plain POST，避開 CORS preflight ---------- */
+async function api(action, payload){
+  if(!API_URL || API_URL.indexOf('PASTE_') === 0) throw new Error('尚未設定 API 網址');
+  const res = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ action }, payload || {}))
+  });
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || '伺服器回應失敗');
+  return data;
+}
+
+/* ---------- 初始化 ---------- */
+function initQuestions(){
+  document.getElementById('qlist').innerHTML = QUESTIONS.map((q,i)=>`
+    <li>
+      <div class="qhead"><div class="qnum"></div>
+        <div><p class="qtext">${q.t}</p><p class="qrule">${q.r}</p></div></div>
+      <div class="qbody">
+        <div class="seg">
+          <label><input type="radio" name="q${i}" value="1" onchange="updateScore()"><span class="yes">答對</span></label>
+          <label><input type="radio" name="q${i}" value="0" onchange="updateScore()"><span class="no">答錯</span></label>
+        </div>
+        <input type="text" id="a${i}" placeholder="個案回答內容（可留空）">
+      </div>
+    </li>`).join('');
+  document.getElementById('ticks').innerHTML = Array.from({length:10},()=>'<div class="tick"></div>').join('');
+  document.getElementById('f-date').valueAsDate = new Date();
+  document.getElementById('f-edu').addEventListener('change', updateScore);
+  if(!API_URL || API_URL.indexOf('PASTE_') === 0) document.getElementById('cfg-warn').hidden = false;
+  updateScore();
+}
+
+/* ---------- 計分 ---------- */
+function eduAdjust(edu){ return edu==='low' ? -1 : edu==='high' ? 1 : 0; }
+function grade(errors, edu){
+  const adj = Math.min(10, Math.max(0, errors + eduAdjust(edu)));
+  let lvl = 0;
+  if(adj>=8) lvl=3; else if(adj>=5) lvl=2; else if(adj>=3) lvl=1;
+  return { adj, lvl };
+}
+function readAnswers(){
+  return QUESTIONS.map((_,i)=>{
+    const el = document.querySelector('input[name="q'+i+'"]:checked');
+    return { ok: el ? el.value==='1' : null, note: document.getElementById('a'+i).value.trim() };
+  });
+}
+function updateScore(){
+  const ans = readAnswers();
+  const answered = ans.filter(a=>a.ok!==null).length;
+  const errors = ans.filter(a=>a.ok===false).length;
+  const edu = document.getElementById('f-edu').value;
+  const g = grade(errors, edu);
+  document.querySelectorAll('#ticks .tick').forEach((t,i)=>{
+    if(i < errors){ t.classList.add('on'); t.style.setProperty('--t', LEVELS[i>=7?3:i>=4?2:i>=2?1:0].color); }
+    else t.classList.remove('on');
+  });
+  document.getElementById('sb-err').textContent = errors;
+  const badge = document.getElementById('sb-lvl');
+  if(answered===0){ badge.textContent='尚未作答'; badge.style.background='#9AA9AC'; }
+  else { badge.textContent = LEVELS[g.lvl].name; badge.style.background = LEVELS[g.lvl].color; }
+  const a = eduAdjust(edu);
+  document.getElementById('sb-adj').textContent = !edu ? '請先選擇教育程度'
+    : `已完成 ${answered}/10 題　校正後 ${g.adj} 題錯誤` + (a===-1?'（國小以下，容許多錯 1 題）':a===1?'（大專以上，需少錯 1 題）':'');
+}
+
+/* ---------- 送出 ---------- */
+async function submitForm(){
+  const err = document.getElementById('form-err');
+  const name = document.getElementById('f-name').value.trim();
+  const edu = document.getElementById('f-edu').value;
+  const ans = readAnswers();
+  const miss = ans.map((a,i)=>a.ok===null?i+1:null).filter(Boolean);
+  let msg = '';
+  if(!name) msg = '請填寫姓名或代號。';
+  else if(!edu) msg = '請選擇教育程度，判讀標準會依此調整。';
+  else if(miss.length) msg = `第 ${miss.join('、')} 題尚未作答。`;
+  if(msg){ err.textContent = msg; err.hidden = false; err.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  err.hidden = true;
+
+  const errors = ans.filter(a=>a.ok===false).length;
+  const g = grade(errors, edu);
+  const rec = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    ts: new Date().toISOString(),
+    name, edu,
+    tester: document.getElementById('f-tester').value.trim(),
+    age: document.getElementById('f-age').value,
+    gender: document.getElementById('f-gender').value,
+    unit: document.getElementById('f-unit').value.trim(),
+    testDate: document.getElementById('f-date').value,
+    note: document.getElementById('f-note').value.trim(),
+    answers: ans, errors, adj: g.adj, lvl: g.lvl
+  };
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true; btn.textContent = '送出中…';
+  try{
+    await api('submit', { record: rec });
+  }catch(e){
+    btn.disabled = false; btn.textContent = '送出問卷';
+    err.textContent = '沒有送出成功（' + e.message + '）。填寫內容還在，請確認網路後再按一次送出。';
+    err.hidden = false; return;
+  }
+  btn.disabled = false; btn.textContent = '送出問卷';
+
+  document.getElementById('done-err').textContent = g.adj;
+  const lb = document.getElementById('done-lvl');
+  lb.textContent = LEVELS[g.lvl].name; lb.style.background = LEVELS[g.lvl].color;
+  document.getElementById('done-raw').textContent = `實際答錯 ${errors} 題，依教育程度校正後為 ${g.adj} 題。`;
+  document.getElementById('done-name').textContent = `${name}　${rec.testDate || ''}`;
+  showView('done'); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function clearQuestions(){
+  QUESTIONS.forEach((_,i)=>{
+    document.querySelectorAll('input[name="q'+i+'"]').forEach(r=>r.checked=false);
+    document.getElementById('a'+i).value='';
+  });
+}
+function resetForm(){
+  if(!confirm('清除目前填寫的內容？')) return;
+  clearQuestions();
+  ['f-name','f-tester','f-age','f-unit','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-gender').value=''; document.getElementById('f-edu').value='';
+  document.getElementById('form-err').hidden = true; updateScore();
+}
+function newForm(){
+  clearQuestions();
+  ['f-name','f-age','f-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-gender').value=''; document.getElementById('f-edu').value='';
+  updateScore(); showView('form'); window.scrollTo({top:0});
+}
+
+/* ---------- 檢視切換 ---------- */
+function showView(v){
+  document.getElementById('view-form').hidden = v!=='form';
+  document.getElementById('view-done').hidden = v!=='done';
+  document.getElementById('view-admin').hidden = v!=='admin';
+  document.getElementById('scorebar').hidden = v!=='form';
+  document.getElementById('tab-form').setAttribute('aria-selected', v!=='admin');
+  document.getElementById('tab-admin').setAttribute('aria-selected', v==='admin');
+}
+
+async function unlock(){
+  const btn = document.getElementById('btn-unlock');
+  const pe = document.getElementById('pw-err');
+  const pass = document.getElementById('pw').value;
+  if(!pass){ pe.textContent='請輸入密碼。'; pe.hidden=false; return; }
+  btn.disabled = true; btn.textContent = '驗證中…';
+  try{
+    const data = await api('list', { pass });
+    adminPass = pass;
+    records = data.records || [];
+    document.getElementById('lock').hidden = true;
+    document.getElementById('panel').hidden = false;
+    pe.hidden = true; renderStats(); renderTable();
+  }catch(e){
+    pe.textContent = e.message === '密碼錯誤' ? '密碼不正確，請再試一次。' : '無法連線後台（' + e.message + '）。';
+    pe.hidden = false;
+  }
+  btn.disabled = false; btn.textContent = '進入後台';
+}
+
+/* ---------- 後台 ---------- */
+async function loadRecords(){
+  const area = document.getElementById('tbl-area');
+  area.innerHTML = '<p class="loading">讀取紀錄中…</p>';
+  try{
+    const data = await api('list', { pass: adminPass });
+    records = data.records || [];
+    renderStats(); renderTable();
+  }catch(e){
+    area.innerHTML = '<p class="empty">讀取失敗（' + esc(e.message) + '）。請按「重新整理」再試一次。</p>';
+  }
+}
+function renderStats(){
+  document.getElementById('s-total').textContent = records.length;
+  [0,1,2,3].forEach(l=>{ document.getElementById('s-l'+l).textContent = records.filter(r=>r.lvl===l).length; });
+}
+function filtered(){
+  const q = document.getElementById('q-search').value.trim().toLowerCase();
+  const lv = document.getElementById('q-level').value;
+  const sort = document.getElementById('q-sort').value;
+  const out = records.filter(r=>{
+    const hit = !q || (r.name+' '+(r.tester||'')+' '+(r.unit||'')).toLowerCase().includes(q);
+    return hit && (lv==='' || String(r.lvl)===lv);
+  });
+  out.sort((a,b)=>
+    sort==='old' ? a.ts.localeCompare(b.ts) :
+    sort==='err' ? b.adj-a.adj :
+    sort==='name'? a.name.localeCompare(b.name,'zh-Hant') :
+    b.ts.localeCompare(a.ts));
+  return out;
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function renderTable(){
+  const rows = filtered();
+  const area = document.getElementById('tbl-area');
+  if(!records.length){ area.innerHTML = '<p class="empty">還沒有任何填答紀錄。把填寫頁的網址給施測人員，送出的問卷就會出現在這裡。</p>'; return; }
+  if(!rows.length){ area.innerHTML = '<p class="empty">沒有符合條件的紀錄，換個關鍵字或程度試試。</p>'; return; }
+  area.innerHTML = '<div class="tblwrap"><table><thead><tr>' +
+    '<th>施測日期</th><th>姓名／代號</th><th>年齡</th><th>教育程度</th><th>答錯</th><th>校正後</th><th>判讀</th><th>施測者</th><th></th>' +
+    '</tr></thead><tbody>' + rows.map(r=>`<tr>
+      <td>${esc(r.testDate||r.ts.slice(0,10))}</td>
+      <td><b>${esc(r.name)}</b></td>
+      <td>${esc(r.age||'—')}</td>
+      <td>${EDU_LABEL[r.edu||'']}</td>
+      <td>${r.errors}</td><td><b>${r.adj}</b></td>
+      <td><span class="pill" style="background:${LEVELS[r.lvl].color}">${LEVELS[r.lvl].name}</span></td>
+      <td>${esc(r.tester||'—')}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="openDetail('${r.id}')">明細</button>
+        <button class="btn btn-danger btn-sm" onclick="delRecord('${r.id}')">刪除</button>
+      </td></tr>`).join('') + '</tbody></table></div>' +
+    `<p class="hint" style="margin-top:10px">目前顯示 ${rows.length} 筆，共 ${records.length} 筆。</p>`;
+}
+
+function openDetail(id){
+  const r = records.find(x=>x.id===id); if(!r) return;
+  document.getElementById('dlg-in').innerHTML = `
+    <p class="eyebrow">填答明細</p>
+    <h3>${esc(r.name)}　<span class="pill" style="background:${LEVELS[r.lvl].color}">${LEVELS[r.lvl].name}</span></h3>
+    <dl class="kv">
+      <dt>施測日期</dt><dd>${esc(r.testDate||'—')}</dd>
+      <dt>送出時間</dt><dd>${new Date(r.ts).toLocaleString('zh-TW')}</dd>
+      <dt>年齡／性別</dt><dd>${esc(r.age||'—')}　${esc(r.gender||'—')}</dd>
+      <dt>教育程度</dt><dd>${EDU_LABEL[r.edu||'']}</dd>
+      <dt>單位場域</dt><dd>${esc(r.unit||'—')}</dd>
+      <dt>施測者</dt><dd>${esc(r.tester||'—')}</dd>
+      <dt>錯誤題數</dt><dd>實際 ${r.errors} 題　校正後 <b>${r.adj}</b> 題</dd>
+    </dl>
+    ${r.answers.map((a,i)=>`<div class="ansrow"><div class="i">${i+1}</div>
+      <div>${QUESTIONS[i].t}${a.note?`<div style="color:var(--muted);font-size:12.5px">回答：${esc(a.note)}</div>`:''}</div>
+      <div class="m" style="color:${a.ok?'var(--ok)':'var(--orange)'}">${a.ok?'答對':'答錯'}</div></div>`).join('')}
+    ${r.note?`<div class="notice" style="margin-top:14px"><b>觀察紀錄：</b>${esc(r.note)}</div>`:''}
+    <div style="text-align:right;margin-top:18px"><button class="btn btn-primary" onclick="document.getElementById('dlg').close()">關閉</button></div>`;
+  document.getElementById('dlg').showModal();
+}
+
+async function delRecord(id){
+  const r = records.find(x=>x.id===id); if(!r) return;
+  if(!confirm(`刪除「${r.name}」這筆紀錄？試算表那一列會一併移除，無法復原。`)) return;
+  try{ await api('delete', { pass: adminPass, id }); }
+  catch(e){ toast('刪除失敗：' + e.message); return; }
+  records = records.filter(x=>x.id!==id);
+  renderStats(); renderTable(); toast('已刪除 1 筆紀錄');
+}
+
+async function clearAll(){
+  if(!records.length){ toast('目前沒有紀錄'); return; }
+  if(!confirm(`即將清空全部 ${records.length} 筆紀錄，且無法復原。確定嗎？`)) return;
+  if(!confirm('再確認一次：真的要清空試算表裡所有填答紀錄？')) return;
+  try{ await api('clear', { pass: adminPass }); }
+  catch(e){ toast('清空失敗：' + e.message); return; }
+  records = []; renderStats(); renderTable(); toast('已清空全部紀錄');
+}
+
+function exportCSV(){
+  if(!records.length){ toast('目前沒有可匯出的紀錄'); return; }
+  const head = ['送出時間','施測日期','姓名代號','年齡','性別','教育程度','單位場域','施測者','答錯題數','校正後題數','判讀結果',
+    ...QUESTIONS.map((q,i)=>'Q'+(i+1)), ...QUESTIONS.map((q,i)=>'Q'+(i+1)+'回答'), '觀察紀錄'];
+  const body = filtered().map(r=>[
+    new Date(r.ts).toLocaleString('zh-TW'), r.testDate||'', r.name, r.age||'', r.gender||'',
+    EDU_LABEL[r.edu||''], r.unit||'', r.tester||'', r.errors, r.adj, LEVELS[r.lvl].name,
+    ...r.answers.map(a=>a.ok?'答對':'答錯'), ...r.answers.map(a=>a.note||''), r.note||''
+  ]);
+  const csv = [head,...body].map(row=>row.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SPMSQ紀錄_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('已匯出 ' + body.length + ' 筆紀錄');
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+initQuestions();
+</script>
 </html>
